@@ -1,0 +1,24 @@
+{
+  "name": "text-watermark",
+  "version": "1.0.0",
+  "description": "纯文本嵌入式水印系统",
+  "main": "src/index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "watermark",
+    "text",
+    "steganography"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^30.2.0",
+    "tailwindcss-animate": "^1.0.7"
+  }
+}
