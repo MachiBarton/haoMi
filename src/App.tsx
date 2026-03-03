@@ -70,78 +70,107 @@ function App() {
     }
   }, [codebook]);
 
-  // 处理密码本导入（仅支持txt格式）
+  // 处理密码本导入（支持txt和json格式）
   const handleImport = useCallback((file: File) => {
-    // 检查文件类型
-    if (!file.name.endsWith('.txt')) {
-      alert('请上传txt格式的文本文件');
-      return;
-    }
-
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
 
-        // 提取所有汉字
-        const chars = Array.from(content).filter(c => /[\u4e00-\u9fa5]/.test(c));
+        // 尝试解析为JSON格式（包含完整的密码本数据+乱数种子）
+        if (file.name.endsWith('.json')) {
+          const importedCodebook = JSON.parse(content) as Codebook;
 
-        if (chars.length === 0) {
-          alert('文件中没有找到中文字符');
+          // 验证密码本格式
+          if (!importedCodebook.pages || !Array.isArray(importedCodebook.pages)) {
+            alert('密码本格式错误：缺少pages字段');
+            return;
+          }
+
+          // 确保每页都有randomSeed
+          for (const page of importedCodebook.pages) {
+            if (typeof page.randomSeed !== 'number') {
+              alert(`密码本格式错误：第${page.pageNumber}页缺少randomSeed`);
+              return;
+            }
+          }
+
+          setCodebook(importedCodebook);
+          const totalChars = importedCodebook.pages.reduce((sum, p) =>
+            sum + p.characters.filter(c => c).length, 0);
+          alert(`密码本导入成功！共导入 ${totalChars} 个字符，${importedCodebook.totalPages} 页`);
           return;
         }
 
-        // 按300字/页生成密码本，支持整篇文章
-        const charsPerPage = 300;
-        const totalPages = Math.ceil(chars.length / charsPerPage);
-        const pages = [];
+        // txt格式导入（仅汉字文本，使用固定种子确保可重复）
+        if (file.name.endsWith('.txt')) {
+          // 提取所有汉字
+          const chars = Array.from(content).filter(c => /[\u4e00-\u9fa5]/.test(c));
 
-        for (let i = 0; i < totalPages; i++) {
-          const startIdx = i * charsPerPage;
-          const endIdx = Math.min(startIdx + charsPerPage, chars.length);
-
-          let pageChars = chars.slice(startIdx, endIdx);
-          // 补足300字（最后一页可能不需要补满）
-          while (pageChars.length < charsPerPage) {
-            pageChars.push('');
+          if (chars.length === 0) {
+            alert('文件中没有找到中文字符');
+            return;
           }
 
-          pages.push({
-            pageNumber: i + 1,
-            rows: 10,
-            cols: 30,
-            characters: pageChars,
-            randomSeed: Math.floor(Math.random() * 900000) + 100000
-          });
+          // 按300字/页生成密码本
+          const charsPerPage = 300;
+          const totalPages = Math.ceil(chars.length / charsPerPage);
+          const pages = [];
+
+          for (let i = 0; i < totalPages; i++) {
+            const startIdx = i * charsPerPage;
+            const endIdx = Math.min(startIdx + charsPerPage, chars.length);
+
+            let pageChars = chars.slice(startIdx, endIdx);
+            // 补足300字
+            while (pageChars.length < charsPerPage) {
+              pageChars.push('');
+            }
+
+            // 使用固定种子：基于页码的确定性种子
+            // 这样同样的文本总是生成同样的种子，确保跨设备可解密
+            const fixedSeed = 100000 + (i + 1) * 1234;
+
+            pages.push({
+              pageNumber: i + 1,
+              rows: 10,
+              cols: 30,
+              characters: pageChars,
+              randomSeed: fixedSeed
+            });
+          }
+
+          const newCodebook: Codebook = {
+            name: file.name.replace('.txt', ''),
+            version: '1.0.0',
+            totalPages: pages.length,
+            pages
+          };
+
+          setCodebook(newCodebook);
+          alert(`密码本导入成功！共导入 ${chars.length} 个字符，生成 ${pages.length} 页\n\n注意：txt导入使用固定乱数种子。如需保留原始乱数种子，请使用json格式导出。`);
+          return;
         }
 
-        const newCodebook = {
-          name: file.name.replace('.txt', ''),
-          version: '1.0.0',
-          totalPages: pages.length,
-          pages
-        };
-
-        setCodebook(newCodebook);
-        // 不保存到localStorage（密码本太大，超过5MB限制）
-        alert(`密码本导入成功！共导入 ${chars.length} 个字符，生成 ${pages.length} 页`);
+        alert('不支持的文件格式，请上传.txt或.json文件');
       } catch (error) {
+        console.error('导入失败:', error);
         alert('密码本导入失败，请检查文件格式');
       }
     };
     reader.readAsText(file);
   }, []);
 
-  // 处理密码本导出（导出为txt格式）
+  // 处理密码本导出（导出为json格式，包含完整的乱数种子）
   const handleExport = useCallback(() => {
     if (!codebook) return;
-    // 将所有页中的字符按顺序合并
-    const allChars = codebook.pages.flatMap(page => page.characters).join('');
-    const blob = new Blob([allChars], { type: 'text/plain' });
+    // 导出完整的密码本数据（包含randomSeed）
+    const exportData = JSON.stringify(codebook, null, 2);
+    const blob = new Blob([exportData], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${codebook.name}.txt`;
+    a.download = `${codebook.name}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }, [codebook]);

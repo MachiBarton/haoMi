@@ -1,6 +1,5 @@
 // 豪密密码工具 - 密码本管理
 import type { Codebook, CodebookPage } from '../types';
-import { generateRandomSeed } from './random';
 
 // 缓存的密码本
 let cachedCodebook: Codebook | null = null;
@@ -50,12 +49,16 @@ export async function generateDefaultCodebook(): Promise<Codebook> {
         pageChars.push('');
       }
 
+      // 使用基于页码的固定种子，确保跨浏览器/跨会话一致性
+      // 种子公式：100000 + 页码 * 1234，确保在100000-999999范围内
+      const fixedSeed = 100000 + (i + 1) * 1234;
+
       pages.push({
         pageNumber: i + 1,
         rows: 10,
         cols: 30,
         characters: pageChars,
-        randomSeed: generateRandomSeed()
+        randomSeed: fixedSeed
       });
     }
 
@@ -99,12 +102,15 @@ function generateFallbackCodebook(): Codebook {
       pageChars.push('');
     }
 
+    // 使用基于页码的固定种子，确保跨浏览器/跨会话一致性
+    const fixedSeed = 100000 + (i + 1) * 1234;
+
     pages.push({
       pageNumber: i + 1,
       rows: 10,
       cols: 30,
       characters: pageChars,
-      randomSeed: generateRandomSeed()
+      randomSeed: fixedSeed
     });
   }
 
