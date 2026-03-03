@@ -1,0 +1,306 @@
+/* 豪密密码工具 - 复古红色特工主题样式 */
+
+/* 导入字体 */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@200;300;400;500;600;700;900&family=Ma+Shan+Zheng&display=swap');
+
+/* CSS变量定义 */
+:root {
+  --primary: #8a0000;
+  --primary-dark: #5e0000;
+  --secondary: #2b2b2b;
+  --paper: #fcf8f3;
+  --paper-dark: #e8e0d5;
+  --accent: #d4af37;
+  --ink: #1d0c0c;
+  --ink-light: #4a3b3b;
+  --grid-line: #eacdcd;
+}
+
+/* 全局样式 */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Noto Serif SC', serif;
+  background-color: #f5f5dc;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 选择文本样式 */
+::selection {
+  background-color: var(--primary);
+  color: white;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--paper);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--grid-line);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* 纸张纹理背景 */
+.bg-paper-texture {
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+}
+
+/* 复古网格背景 */
+.bg-vintage-grid {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* 复古阴影效果 */
+.shadow-vintage {
+  box-shadow: 4px 4px 0px 0px rgba(138, 0, 0, 0.15);
+}
+
+.shadow-vintage-sm {
+  box-shadow: 2px 2px 0px 0px rgba(138, 0, 0, 0.1);
+}
+
+/* 纸张内阴影 */
+.shadow-inset-paper {
+  box-shadow: inset 0 0 20px rgba(139, 69, 19, 0.1);
+}
+
+/* 输入框样式 */
+input[type="text"],
+input[type="number"],
+textarea {
+  font-family: 'Noto Serif SC', serif;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(138, 0, 0, 0.1);
+}
+
+/* 按钮基础样式 */
+button {
+  font-family: 'Noto Serif SC', serif;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* 主按钮样式 */
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  border-radius: 0.25rem;
+  box-shadow: 4px 4px 0px 0px rgba(138, 0, 0, 0.2);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--primary-dark);
+  transform: translateY(1px);
+  box-shadow: 2px 2px 0px 0px rgba(138, 0, 0, 0.2);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+/* 次要按钮样式 */
+.btn-secondary {
+  background-color: white;
+  color: var(--primary);
+  border: 1px solid var(--primary);
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  border-radius: 0.25rem;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: rgba(138, 0, 0, 0.05);
+}
+
+/* 标签样式 */
+.label-vintage {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--primary);
+}
+
+/* 卡片样式 */
+.card-vintage {
+  background-color: white;
+  border: 1px solid rgba(138, 0, 0, 0.2);
+  border-radius: 0.25rem;
+  box-shadow: 4px 4px 0px 0px rgba(138, 0, 0, 0.08);
+}
+
+/* 表格样式 */
+.table-vintage {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-vintage th {
+  background-color: rgba(138, 0, 0, 0.08);
+  color: var(--primary);
+  font-weight: 700;
+  padding: 0.75rem;
+  border-bottom: 2px solid rgba(138, 0, 0, 0.2);
+  text-align: left;
+}
+
+.table-vintage td {
+  padding: 0.75rem;
+  border-bottom: 1px solid rgba(138, 0, 0, 0.1);
+}
+
+.table-vintage tr:hover td {
+  background-color: rgba(138, 0, 0, 0.03);
+}
+
+/* 分隔线样式 */
+.divider-vintage {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(138, 0, 0, 0.3) 20%,
+    rgba(138, 0, 0, 0.3) 80%,
+    transparent 100%
+  );
+}
+
+/* 印章效果 */
+.stamp {
+  border: 3px solid var(--primary);
+  border-radius: 50%;
+  color: var(--primary);
+  font-weight: bold;
+  text-transform: uppercase;
+  transform: rotate(-12deg);
+  opacity: 0.6;
+}
+
+/* 动画效果 */
+@keyframes pulse-vintage {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.animate-pulse-vintage {
+  animation: pulse-vintage 2s ease-in-out infinite;
+}
+
+/* 打字机效果 */
+@keyframes typewriter {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.typewriter {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: typewriter 0.5s steps(20) forwards;
+}
+
+/* 淡入效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* 响应式字体大小 */
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  html {
+    font-size: 12px;
+  }
+}
+
+/* 等宽字体（用于密文显示） */
+.font-mono-vintage {
+  font-family: 'Courier New', Courier, monospace;
+  letter-spacing: 0.1em;
+}
+
+/* 手写体（用于装饰性文字） */
+.font-handwriting {
+  font-family: 'Ma Shan Zheng', cursive;
+}
+
+/* 状态指示器 */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.active {
+  background-color: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.3);
+  animation: pulse-vintage 2s ease-in-out infinite;
+}
+
+.status-dot.inactive {
+  background-color: #ef4444;
+}
+
+.status-dot.warning {
+  background-color: #f59e0b;
+}
