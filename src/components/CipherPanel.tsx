@@ -6,10 +6,12 @@ import {
   Copy,
   Check,
   Edit3,
-  ArrowDown
+  ArrowDown,
+  Radio
 } from 'lucide-react';
 import type { Codebook, CipherMode, EncryptionResult } from '../types';
 import { CipherError } from '../core/cipher';
+import { MorseCodeModal } from './MorseCodeModal';
 
 interface CipherPanelProps {
   codebook: Codebook;
@@ -34,6 +36,7 @@ export function CipherPanel({
   const [copied, setCopied] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [showMorseModal, setShowMorseModal] = useState(false);
 
   // 根据当前模式获取对应的输入值和设置函数
   const inputText = mode === 'encrypt' ? encryptInput : decryptInput;
@@ -206,24 +209,35 @@ export function CipherPanel({
         <div className="flex flex-col gap-2 flex-1">
           <label className="text-[#8a0000] font-bold text-sm tracking-wide uppercase flex items-center justify-between">
             <span>{mode === 'encrypt' ? '密文（复制发送）' : '明文（解密结果）'}</span>
-            {outputText && (
-              <button
-                onClick={handleCopy}
-                className="text-xs text-[#8a0000] underline decoration-dotted hover:text-[#5e0000] flex items-center gap-1 transition-colors"
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    已复制
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-3.5 h-3.5" />
-                    复制
-                  </>
-                )}
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {mode === 'encrypt' && outputText && (
+                <button
+                  onClick={() => setShowMorseModal(true)}
+                  className="text-xs bg-[#1d0c0c] text-white px-3 py-1.5 rounded hover:bg-[#0f0f0f] flex items-center gap-1 transition-colors"
+                >
+                  <Radio className="w-3.5 h-3.5" />
+                  模拟发报
+                </button>
+              )}
+              {outputText && (
+                <button
+                  onClick={handleCopy}
+                  className="text-xs text-[#8a0000] underline decoration-dotted hover:text-[#5e0000] flex items-center gap-1 transition-colors"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      已复制
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      复制
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </label>
           <div className="relative flex-1">
             <textarea
@@ -264,6 +278,13 @@ export function CipherPanel({
           </div>
         </div>
       )}
+
+      {/* 摩尔斯电码发报模态框 */}
+      <MorseCodeModal
+        isOpen={showMorseModal}
+        onClose={() => setShowMorseModal(false)}
+        ciphertext={outputText}
+      />
     </div>
   );
 }
