@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   Lock,
   Unlock,
@@ -41,6 +41,12 @@ export function CipherPanel({
   // 根据当前模式获取对应的输入值和设置函数
   const inputText = mode === 'encrypt' ? encryptInput : decryptInput;
   const setInputText = mode === 'encrypt' ? setEncryptInput : setDecryptInput;
+
+  // 切换模式时清空输出
+  useEffect(() => {
+    setOutputText('');
+    setResult(null);
+  }, [mode]);
 
   // 处理加密
   const handleEncrypt = useCallback(() => {

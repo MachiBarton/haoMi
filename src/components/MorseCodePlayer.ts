@@ -45,6 +45,14 @@ class Sounder {
     this.endTone(end);
     return end;
   }
+
+  getContextState(): string {
+    return this.context.state;
+  }
+
+  resumeContext(): Promise<void> {
+    return this.context.resume();
+  }
 }
 
 class Keyer {
@@ -287,6 +295,24 @@ export class MorseCodePlayer {
 
   isRunning(): boolean {
     return this.running;
+  }
+
+  // 获取 AudioContext 状态
+  getAudioContextState(): string {
+    return this.sounder.getContextState();
+  }
+
+  // 恢复 AudioContext（解决浏览器自动播放限制）
+  resumeAudioContext(): Promise<void> {
+    return this.sounder.resumeContext();
+  }
+
+  // 直接播放单个音（用于手动按键）
+  playToneNow(isDot: boolean, frequency?: number): void {
+    const freq = frequency || this.freq;
+    const duration = isDot ? this.keyer.getDot() : this.keyer.getDash();
+    const now = this.sounder.getTime();
+    this.sounder.playTone(now, duration, freq);
   }
 
   private playNow(item: QueueItem, time: number): [number, number] {
