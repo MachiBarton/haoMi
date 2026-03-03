@@ -17,7 +17,7 @@ export async function generateDefaultCodebook(): Promise<Codebook> {
 
   try {
     // 读取三国演义.txt文件
-    const response = await fetch('/三国演义.txt');
+    const response = await fetch('./三国演义.txt');
     if (!response.ok) {
       throw new Error(`Failed to load: ${response.status}`);
     }
