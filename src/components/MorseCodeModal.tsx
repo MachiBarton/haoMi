@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Play, RotateCcw, Radio } from 'lucide-react';
+import { MorseCodePlayer, QueueItem } from './MorseCodePlayer';
 
 interface MorseCodeModalProps {
   isOpen: boolean;
@@ -19,7 +20,7 @@ const MORSE_CODE_MAP: Record<string, string> = {
   '7': '--...',
   '8': '---..',
   '9': '----.',
-  '-': '-...-', // 连字符
+  '-': '-...-',
 };
 
 // 将密文转换为摩尔斯电码
@@ -42,8 +43,9 @@ export function MorseCodeModal({ isOpen, onClose, ciphertext }: MorseCodeModalPr
   const [isPlaying, setIsPlaying] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
   const [activeKey, setActiveKey] = useState<'J' | 'K' | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const playerRef = useRef<MorseCodePlayer | null>(null);
   const morseSequence = useRef<string[]>([]);
+  const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // 初始化摩尔斯电码
   useEffect(() => {
@@ -53,121 +55,111 @@ export function MorseCodeModal({ isOpen, onClose, ciphertext }: MorseCodeModalPr
       morseSequence.current = parseMorseSequence(morse);
       setCurrentIndex(0);
       setIsComplete(false);
+
+      // 创建新的播放器实例
+      if (playerRef.current) {
+        playerRef.current.stop();
+      }
+      playerRef.current = new MorseCodePlayer(30, 30, false);
     }
   }, [isOpen, ciphertext]);
 
-  // 电报机音频播放函数 - 模拟真实电报机声音
-  const playTone = useCallback((duration: number) => {
-    try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+  // 清理
+  useEffect(() => {
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.stop();
       }
-
-      const ctx = audioContextRef.current;
-      const now = ctx.currentTime;
-      const durationSec = duration / 1000;
-
-      // 主振荡器 - 752Hz 电报机标准频率
-      const oscillator = ctx.createOscillator();
-      oscillator.frequency.setValueAtTime(752, now);
-      oscillator.type = 'sine';
-
-      // 第二振荡器 - 添加丰富谐波，使声音更浑厚
-      const oscillator2 = ctx.createOscillator();
-      oscillator2.frequency.setValueAtTime(1504, now); // 二次谐波
-      oscillator2.type = 'sine';
-
-      // 带通滤波器 - 模拟电报机的音频特性
-      const bandpass = ctx.createBiquadFilter();
-      bandpass.type = 'bandpass';
-      bandpass.frequency.setValueAtTime(752, now);
-      bandpass.Q.setValueAtTime(15, now); // 较高的Q值产生明亮的声音
-
-      // 主音量节点
-      const mainGain = ctx.createGain();
-      mainGain.gain.setValueAtTime(0, now);
-
-      // 谐波音量节点
-      const harmonicGain = ctx.createGain();
-      harmonicGain.gain.setValueAtTime(0, now);
-
-      // 信号路径：osillator -> gain -> bandpass -> destination
-      oscillator.connect(mainGain);
-      mainGain.connect(bandpass);
-      oscillator2.connect(harmonicGain);
-      harmonicGain.connect(bandpass);
-      bandpass.connect(ctx.destination);
-
-      // 包络设置 - 模拟电钥按下的响应
-      const attackTime = 0.005; // 5ms 攻击时间
-      const decayTime = 0.015; // 15ms 衰减开始
-
-      // 主振荡器包络
-      mainGain.gain.linearRampToValueAtTime(0.35, now + attackTime);
-      mainGain.gain.setValueAtTime(0.35, now + durationSec - decayTime);
-      mainGain.gain.exponentialRampToValueAtTime(0.001, now + durationSec);
-
-      // 谐波包络（较低的音量）
-      harmonicGain.gain.linearRampToValueAtTime(0.08, now + attackTime);
-      harmonicGain.gain.setValueAtTime(0.08, now + durationSec - decayTime);
-      harmonicGain.gain.exponentialRampToValueAtTime(0.001, now + durationSec);
-
-      // 启动和停止
-      oscillator.start(now);
-      oscillator2.start(now);
-      oscillator.stop(now + durationSec + 0.05);
-      oscillator2.stop(now + durationSec + 0.05);
-
-    } catch (e) {
-      console.error('Audio play failed:', e);
-    }
+      if (playIntervalRef.current) {
+        clearInterval(playIntervalRef.current);
+      }
+    };
   }, []);
 
-  // 自动播放摩尔斯电码
-  const autoPlay = useCallback(async () => {
-    if (isPlaying) return;
+  // 使用 morsenode.com 的 Player 自动播放
+  const autoPlay = useCallback(() => {
+    if (!playerRef.current || isPlaying) return;
+
     setIsPlaying(true);
     setCurrentIndex(0);
 
+    const player = playerRef.current;
+    player.clearQueue();
+
+    // 将摩尔斯电码转换为 Player 可以播放的格式
     const sequence = morseSequence.current;
-
-    for (let i = 0; i < sequence.length; i++) {
-      const char = sequence[i];
-
+    sequence.forEach((char) => {
       if (char === '.') {
-        setActiveKey('J');
-        playTone(80);  // 点：80ms
-        await new Promise(resolve => setTimeout(resolve, 80));
-        setActiveKey(null);
-        await new Promise(resolve => setTimeout(resolve, 80)); // 元素间隔
+        player.queueLetter('.', 600);
       } else if (char === '-') {
-        setActiveKey('K');
-        playTone(240); // 划：240ms（3倍于点）
-        await new Promise(resolve => setTimeout(resolve, 240));
-        setActiveKey(null);
-        await new Promise(resolve => setTimeout(resolve, 80)); // 元素间隔
+        player.queueLetter('-', 600);
       } else if (char === ' ') {
-        await new Promise(resolve => setTimeout(resolve, 160)); // 字符间隔（额外2倍点时长）
+        player.queueWord(' ', 600);
       }
+    });
 
-      setCurrentIndex(i + 1);
-    }
+    // 跟踪播放进度
+    let charIndex = 0;
+    const totalChars = sequence.length;
 
-    setIsPlaying(false);
-    setIsComplete(true);
-  }, [isPlaying, playTone]);
+    // 使用 setInterval 模拟播放进度
+    playIntervalRef.current = setInterval(() => {
+      if (charIndex < totalChars) {
+        const char = sequence[charIndex];
+        if (char === '.') {
+          setActiveKey('J');
+          setTimeout(() => setActiveKey(null), 100);
+        } else if (char === '-') {
+          setActiveKey('K');
+          setTimeout(() => setActiveKey(null), 300);
+        }
+        setCurrentIndex(charIndex + 1);
+        charIndex++;
+      } else {
+        if (playIntervalRef.current) {
+          clearInterval(playIntervalRef.current);
+        }
+        setIsPlaying(false);
+        setIsComplete(true);
+      }
+    }, 120); // 约 30 WPM 的速度
+
+    // 启动播放器
+    player.start(
+      (item: QueueItem) => {
+        // onPlayed callback
+        console.log('Played:', item.word);
+      },
+      () => {
+        // onDone callback
+        if (playIntervalRef.current) {
+          clearInterval(playIntervalRef.current);
+        }
+        setIsPlaying(false);
+        setIsComplete(true);
+      }
+    );
+  }, [isPlaying]);
 
   // 手动按键处理
   const handleKeyDown = useCallback((key: 'J' | 'K') => {
-    if (isPlaying || isComplete) return;
+    if (isPlaying || isComplete || !playerRef.current) return;
 
     setActiveKey(key);
     const sequence = morseSequence.current;
     const expectedChar = sequence[currentIndex];
 
     if ((key === 'J' && expectedChar === '.') || (key === 'K' && expectedChar === '-')) {
-      // 正确输入
-      playTone(key === 'J' ? 80 : 240);
+      // 正确输入 - 使用 Player 播放
+      const player = playerRef.current;
+      player.clearQueue();
+      player.queueLetter(key === 'J' ? '.' : '-', 600);
+
+      // 播放单个音
+      player.start(undefined, () => {
+        player.stop();
+      });
+
       setCurrentIndex(prev => {
         const next = prev + 1;
         if (next >= sequence.length) {
@@ -179,7 +171,7 @@ export function MorseCodeModal({ isOpen, onClose, ciphertext }: MorseCodeModalPr
       // 跳过空格
       setCurrentIndex(prev => prev + 1);
     }
-  }, [currentIndex, isPlaying, isComplete, playTone]);
+  }, [currentIndex, isPlaying, isComplete]);
 
   const handleKeyUp = useCallback(() => {
     setActiveKey(null);
@@ -216,9 +208,16 @@ export function MorseCodeModal({ isOpen, onClose, ciphertext }: MorseCodeModalPr
 
   // 重置
   const reset = () => {
+    if (playerRef.current) {
+      playerRef.current.stop();
+    }
+    if (playIntervalRef.current) {
+      clearInterval(playIntervalRef.current);
+    }
     setCurrentIndex(0);
     setIsComplete(false);
     setIsPlaying(false);
+    setActiveKey(null);
   };
 
   if (!isOpen) return null;
