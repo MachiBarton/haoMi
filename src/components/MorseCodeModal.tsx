@@ -56,7 +56,7 @@ export function MorseCodeModal({ isOpen, onClose, ciphertext }: MorseCodeModalPr
     }
   }, [isOpen, ciphertext]);
 
-  // 音频播放函数
+  // 电报机音频播放函数 - 模拟真实电报机声音
   const playTone = useCallback((duration: number) => {
     try {
       if (!audioContextRef.current) {
@@ -64,20 +64,60 @@ export function MorseCodeModal({ isOpen, onClose, ciphertext }: MorseCodeModalPr
       }
 
       const ctx = audioContextRef.current;
+      const now = ctx.currentTime;
+      const durationSec = duration / 1000;
+
+      // 主振荡器 - 752Hz 电报机标准频率
       const oscillator = ctx.createOscillator();
-      const gainNode = ctx.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(ctx.destination);
-
-      oscillator.frequency.value = 800; // 800Hz 电报音
+      oscillator.frequency.setValueAtTime(752, now);
       oscillator.type = 'sine';
 
-      gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration / 1000);
+      // 第二振荡器 - 添加丰富谐波，使声音更浑厚
+      const oscillator2 = ctx.createOscillator();
+      oscillator2.frequency.setValueAtTime(1504, now); // 二次谐波
+      oscillator2.type = 'sine';
 
-      oscillator.start(ctx.currentTime);
-      oscillator.stop(ctx.currentTime + duration / 1000);
+      // 带通滤波器 - 模拟电报机的音频特性
+      const bandpass = ctx.createBiquadFilter();
+      bandpass.type = 'bandpass';
+      bandpass.frequency.setValueAtTime(752, now);
+      bandpass.Q.setValueAtTime(15, now); // 较高的Q值产生明亮的声音
+
+      // 主音量节点
+      const mainGain = ctx.createGain();
+      mainGain.gain.setValueAtTime(0, now);
+
+      // 谐波音量节点
+      const harmonicGain = ctx.createGain();
+      harmonicGain.gain.setValueAtTime(0, now);
+
+      // 信号路径：osillator -> gain -> bandpass -> destination
+      oscillator.connect(mainGain);
+      mainGain.connect(bandpass);
+      oscillator2.connect(harmonicGain);
+      harmonicGain.connect(bandpass);
+      bandpass.connect(ctx.destination);
+
+      // 包络设置 - 模拟电钥按下的响应
+      const attackTime = 0.005; // 5ms 攻击时间
+      const decayTime = 0.015; // 15ms 衰减开始
+
+      // 主振荡器包络
+      mainGain.gain.linearRampToValueAtTime(0.35, now + attackTime);
+      mainGain.gain.setValueAtTime(0.35, now + durationSec - decayTime);
+      mainGain.gain.exponentialRampToValueAtTime(0.001, now + durationSec);
+
+      // 谐波包络（较低的音量）
+      harmonicGain.gain.linearRampToValueAtTime(0.08, now + attackTime);
+      harmonicGain.gain.setValueAtTime(0.08, now + durationSec - decayTime);
+      harmonicGain.gain.exponentialRampToValueAtTime(0.001, now + durationSec);
+
+      // 启动和停止
+      oscillator.start(now);
+      oscillator2.start(now);
+      oscillator.stop(now + durationSec + 0.05);
+      oscillator2.stop(now + durationSec + 0.05);
+
     } catch (e) {
       console.error('Audio play failed:', e);
     }
@@ -96,18 +136,18 @@ export function MorseCodeModal({ isOpen, onClose, ciphertext }: MorseCodeModalPr
 
       if (char === '.') {
         setActiveKey('J');
-        playTone(100);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        playTone(80);  // 点：80ms
+        await new Promise(resolve => setTimeout(resolve, 80));
         setActiveKey(null);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 80)); // 元素间隔
       } else if (char === '-') {
         setActiveKey('K');
-        playTone(300);
-        await new Promise(resolve => setTimeout(resolve, 300));
+        playTone(240); // 划：240ms（3倍于点）
+        await new Promise(resolve => setTimeout(resolve, 240));
         setActiveKey(null);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 80)); // 元素间隔
       } else if (char === ' ') {
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, 160)); // 字符间隔（额外2倍点时长）
       }
 
       setCurrentIndex(i + 1);
@@ -127,7 +167,7 @@ export function MorseCodeModal({ isOpen, onClose, ciphertext }: MorseCodeModalPr
 
     if ((key === 'J' && expectedChar === '.') || (key === 'K' && expectedChar === '-')) {
       // 正确输入
-      playTone(key === 'J' ? 100 : 300);
+      playTone(key === 'J' ? 80 : 240);
       setCurrentIndex(prev => {
         const next = prev + 1;
         if (next >= sequence.length) {
